@@ -21,5 +21,5 @@ export interface LoginData {
   }
   
   export interface LoginScreenProps extends BottomTabScreenProps<any, 'Login'> {
-    onLogin: (loginData: LoginData) => void;
+    onLogin?: (loginData: LoginData) => void;
   }
