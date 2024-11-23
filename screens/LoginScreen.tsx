@@ -6,7 +6,7 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { LoginData, NavigationProps, LoginScreenProps } from '../types';
 
-const MAX_LOGIN_ATTEMPTS = 10;
+const MAX_LOGIN_ATTEMPTS = 3;
 const INITIAL_URL = 'https://clica.jp/app/';
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
@@ -85,17 +85,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       return;
     }
 
-    if (!isLoggedIn && !navState.url.includes('/home/default.aspx')) {
-      if (navState.url === 'about:blank') {
-        return;
-      }
-      
+    if (!isLoggedIn && navState.url.includes('default.aspx?k=')) {
       setLoginAttempts(prevAttempts => {
         const newAttempts = prevAttempts + 1;
         console.log('🔄 Login attempt', newAttempts + '/' + MAX_LOGIN_ATTEMPTS);
-        if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
-          handleMaxAttemptsReached();
-        }
         return newAttempts;
       });
     }
@@ -192,7 +185,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               } catch (error) {
                 console.error('❌ Form submission error:', error);
               }
-            }, 1500);
+            }, 500);
             console.log('⏰ Submit timeout set: 1.5s');
           } else {
             let retryCount = 0;
@@ -204,7 +197,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               
               if (retryCount < maxRetries) {
                 console.log('⏰ Retry timeout set: 1.5s');
-                setTimeout(fillForm, 1500);
+                setTimeout(fillForm, 500);
               } else {
                 console.log('❌ Max retries reached, form fill failed');
               }
@@ -283,7 +276,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
   const handleLoadEnd = () => {
     console.log('✅ WebView load completed');
-    setTimeout(injectJS, 1000);
+    setTimeout(injectJS, 500);
   };
 
   if (isLoading) {
