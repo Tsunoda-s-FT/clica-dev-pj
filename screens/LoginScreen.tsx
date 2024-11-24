@@ -21,6 +21,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const webViewRef = useRef<WebView>(null);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
 
+  /**
+   * ログインデータをAsyncStorageから取得します。
+   */
   const fetchLoginData = async () => {
     try {
       console.log('🔍 Fetching login data from AsyncStorage...');
@@ -38,6 +41,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   };
 
+  /**
+   * 画面がフォーカスされた際にログインデータの取得とWebViewのリロードを行います。
+   */
   useEffect(() => {
     console.log('🔄 Screen focus state changed. isFocused:', isFocused);
     if (isFocused && !isLoggedIn) {
@@ -52,6 +58,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   }, [isFocused, isLoggedIn]);
 
+  /**
+   * ログイン状態に応じてタブバーの表示を制御します。
+   */
   useEffect(() => {
     if (isLoggedIn) {
       console.log('👤 User logged in, hiding tab bar');
@@ -59,6 +68,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   }, [isLoggedIn, navigation]);
 
+  /**
+   * 初期ロード時にWebViewを強制的にリフレッシュします。
+   */
   useEffect(() => {
     if (isInitialLoad) {
       console.log('🔄 Initial load detected, forcing refresh');
@@ -67,6 +79,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   }, [isInitialLoad]);
 
+  /**
+   * WebViewのナビゲーション状態が変化した際のハンドラ。
+   * ログイン成功やログイン試行回数の管理を行います。
+   */
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     console.log('🌐 Navigating to:', navState.url);
     
@@ -89,11 +105,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       setLoginAttempts(prevAttempts => {
         const newAttempts = prevAttempts + 1;
         console.log('🔄 Login attempt', newAttempts + '/' + MAX_LOGIN_ATTEMPTS);
+        if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+          handleMaxAttemptsReached();
+        }
         return newAttempts;
       });
     }
   };
 
+  /**
+   * ログイン試行が最大に達した際の処理。
+   * 自動ログインを無効化し、ユーザーに再認証を促します。
+   */
   const handleMaxAttemptsReached = async () => {
     console.log('⚠️ Max login attempts reached');
     try {
@@ -118,6 +141,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   };
 
+  /**
+   * フォーム入力を自動で埋めるためのJavaScriptコードを生成します。
+   * ログイン前のみ実行され、ログイン後は空文字を返します。
+   */
   const injectJavaScriptToFillForm = (): string => {
     if (!loginData?.autoLoginEnabled || isLoggedIn) {
       console.log('⚠️ Auto-login disabled or already logged in');
@@ -174,7 +201,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             
             userInput.value = '${loginData.userID}';
             passwordInput.value = '${loginData.password}';
-            
+           
             console.log('⏰ Setting submit timeout...');
             setTimeout(() => {
               try {
@@ -185,7 +212,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               } catch (error) {
                 console.error('❌ Form submission error:', error);
               }
-            }, 500);
+            }, 1500);
             console.log('⏰ Submit timeout set: 1.5s');
           } else {
             let retryCount = 0;
@@ -197,7 +224,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               
               if (retryCount < maxRetries) {
                 console.log('⏰ Retry timeout set: 1.5s');
-                setTimeout(fillForm, 500);
+                setTimeout(fillForm, 1500);
               } else {
                 console.log('❌ Max retries reached, form fill failed');
               }
@@ -214,6 +241,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     `;
   };
 
+  /**
+   * ログアウト処理を行います。
+   * 自動ログインを無効化し、アプリのナビゲーションをリセットします。
+   */
   const handleLogout = async (logoutData: LoginData | null | undefined = null) => {
     console.log('🔄 Processing logout...');
     try {
@@ -236,14 +267,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   };
 
+  /**
+   * WebViewが新しいリクエストを開始する際のハンドラ。
+   * ログイン前のみ`about:blank`のリダイレクト処理を実施します。
+   */
   const handleShouldStartLoadWithRequest = (request: any): boolean => {
     console.log('🔍 Load request for URL:', request.url);
     
-    if (request.url === 'about:blank') {
-      console.log('⚡ Redirecting from about:blank to main URL');
-      setCurrentUrl(INITIAL_URL);
-      setWebViewKey(prevKey => prevKey + 1);
-      return false;
+    if (!isLoggedIn) {
+      // ログイン前のみ、about:blankの処理を行う
+      if (request.url === 'about:blank') {
+        console.log('⚡ Redirecting from about:blank to main URL');
+        setCurrentUrl(INITIAL_URL);
+        setWebViewKey(prevKey => prevKey + 1);
+        return false;
+      }
     }
 
     if (request.url.startsWith('http://clica.jp')) {
@@ -264,6 +302,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     return true;
   };
 
+  /**
+   * JavaScriptコードをWebViewに注入します。
+   */
   const injectJS = () => {
     if (webViewRef.current) {
       const jsCode = injectJavaScriptToFillForm();
@@ -274,15 +315,24 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   };
 
+  /**
+   * WebViewのロード完了時にJavaScriptを注入します。
+   */
   const handleLoadEnd = () => {
     console.log('✅ WebView load completed');
     setTimeout(injectJS, 500);
   };
 
+  /**
+   * ローディングインジケータを表示中の場合のレンダリング。
+   */
   if (isLoading) {
     return <LoadingIndicator />;
   }
 
+  /**
+   * メインのレンダリング。WebViewを表示します。
+   */
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <WebView
@@ -330,7 +380,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         domStorageEnabled={true}
         startInLoadingState={true}
         mixedContentMode="compatibility"
-        originWhitelist={['*']}
+        originWhitelist={['https://*', 'http://*', 'about:blank']}
         setSupportMultipleWindows={false}
         style={{ flex: 1 }}
       />
