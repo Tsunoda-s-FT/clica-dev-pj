@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -10,13 +9,10 @@ import { WebView } from 'react-native-webview';
 import LoginScreen from './screens/LoginScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import LoadingIndicator from './components/LoadingIndicator';
-import { AuthTabsProps, MainStackProps, LoginData } from './types';
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { AuthTabsProps, MainStackProps, LoginData, LoginScreenProps, AuthTabsParamList } from './types'; // AuthTabsParamListをインポート
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<AuthTabsParamList>();
 const Stack = createStackNavigator();
-
-type LoginScreenNavigationProps = BottomTabScreenProps<any, 'Login'>;
 
 const AuthTabs: React.FC<AuthTabsProps> = ({ onLogin }) => (
   <Tab.Navigator
@@ -24,11 +20,11 @@ const AuthTabs: React.FC<AuthTabsProps> = ({ onLogin }) => (
       headerShown: false,
       tabBarIcon: ({ focused, color, size }) => {
         let iconName = focused
-          ? route.name === 'Login'
-            ? 'log-in'
+          ? route.name === 'Home'
+            ? 'home'
             : 'settings'
-          : route.name === 'Login'
-          ? 'log-in-outline'
+          : route.name === 'Home'
+          ? 'home-outline'
           : 'settings-outline';
 
         return <Ionicons name={iconName} size={size} color={color} />;
@@ -38,11 +34,11 @@ const AuthTabs: React.FC<AuthTabsProps> = ({ onLogin }) => (
     })}
   >
     <Tab.Screen
-      name="Login"
-      component={(props: LoginScreenNavigationProps) => (
+      name="Home"
+      component={(props: LoginScreenProps) => (
         <LoginScreen {...props} onLogin={onLogin} />
       )}
-      options={{ tabBarLabel: 'Login' }}
+      options={{ tabBarLabel: 'Home' }}
     />
     <Tab.Screen
       name="Settings"

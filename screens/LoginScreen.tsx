@@ -4,7 +4,7 @@ import { WebView, WebViewNavigation } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import LoadingIndicator from '../components/LoadingIndicator';
-import { LoginData, NavigationProps, LoginScreenProps } from '../types';
+import { LoginData, LoginScreenProps } from '../types';
 
 // 最大ログイン試行回数の定義
 const MAX_LOGIN_ATTEMPTS = 3;
@@ -24,6 +24,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const [loginAttempts, setLoginAttempts] = useState<number>(0);
   // ログイン状態の管理
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  // ナォーム送信状態の管理
+  const [isFormSubmitted, setIsFormSubmitted] = useState<boolean>(false);
+  // ログアウト処理中の状態管理
+  const [isProcessingLogout, setIsProcessingLogout] = useState<boolean>(false);
+
   // ナビゲーションオブジェクトの取得
   const navigation = useNavigation();
   // 画面のフォーカス状態の取得
@@ -32,8 +37,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const webViewRef = useRef<WebView>(null);
   // 初回ロードの管理
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
-  // ログアウト処理中の状態管理
-  const [isProcessingLogout, setIsProcessingLogout] = useState<boolean>(false);
 
   /**
    * ログインデータをAsyncStorageから取得します。
@@ -125,7 +128,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
 
     // ログイン試行中のURLパターンに一致した場合の処理
-    if (!isLoggedIn && navState.url.includes('default.aspx?k=')) {
+    if (!isLoggedIn && isFormSubmitted && navState.url.includes('default.aspx')) {
+      console.log('🔄 Form submitted, tracking login attempts');
+      setIsFormSubmitted(false);
       setLoginAttempts(prevAttempts => {
         const newAttempts = prevAttempts + 1;
         console.log('🔄 Login attempt', newAttempts + '/' + MAX_LOGIN_ATTEMPTS);
@@ -154,10 +159,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         setLoginData(updatedData);
         console.log('✅ Auto-login disabled after max attempts');
       }
-      Alert.alert('Login Error', 'Too many login attempts. Please re-enter your credentials.', [
+      Alert.alert('ログインエラー', 'ログイン設定を確認してください。', [
         { 
           text: 'OK',
-          onPress: () => navigation.navigate('Settings' as never)
+          onPress: () => {
+            console.log('🛤 Navigating to Settings screen due to max attempts');
+            navigation.navigate('Settings' as never);
+          }
         }
       ]);
     } catch (error) {
@@ -170,8 +178,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
    * ログイン前のみ実行され、ログイン後は空文字を返します。
    */
   const injectJavaScriptToFillForm = (): string => {
-    if (!loginData?.autoLoginEnabled || isLoggedIn) {
-      console.log('⚠️ Auto-login disabled or already logged in');
+    if (!loginData?.autoLoginEnabled || isLoggedIn || loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+      console.log('⚠️ Auto-login disabled, already logged in, or max login attempts reached');
       return '';
     }
 
@@ -231,6 +239,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               try {
                 console.log('⏰ Submit timeout triggered');
                 console.log('📤 Attempting form submission...');
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'formSubmitted' }));
                 __doPostBack('ctl00$cplPageContent$LinkButton1', '');
                 console.log('✅ Form submitted successfully');
               } catch (error) {
@@ -326,17 +335,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handleShouldStartLoadWithRequest = (request: any): boolean => {
     console.log('🔍 Load request for URL:', request.url);
     
-    if (!isLoggedIn) {
-      // ログイン前のみ、about:blankの処理を行う
-      if (request.url === 'about:blank') {
-        console.log('⚡ Redirecting from about:blank to main URL');
-        setCurrentUrl(INITIAL_URL);
-        setWebViewKey(prevKey => prevKey + 1);
-        return false;
-      }
+    if (!isLoggedIn && request.url === 'about:blank') {
+      console.log('⚡ Redirecting from about:blank to main URL');
+      setCurrentUrl(INITIAL_URL);
+      setWebViewKey(prevKey => prevKey + 1);
+      return false;
     }
 
-    // HTTPからHTTPSへのリダイレクト処理
     if (request.url.startsWith('http://clica.jp')) {
       console.log('🔒 Converting HTTP to HTTPS');
       const secureUrl = request.url.replace('http://', 'https://');
@@ -345,7 +350,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       return false;
     }
 
-    // ユーザークリックによるナビゲーションの処理
     if (request.navigationType === 'click' && request.url !== currentUrl) {
       console.log('👆 User click detected, updating URL');
       setCurrentUrl(request.url);
@@ -413,6 +417,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               console.warn('🌐 WebView Warning:', ...message.data);
             } else if (message.type === 'maxRetries') {
               handleMaxAttemptsReached();
+            } else if (message.type === 'formSubmitted') {
+              console.log('🟢 Form submission detected from WebView');
+              setIsFormSubmitted(true);
             } else if (message.type === 'error') {
               console.error('🌐 WebView Error:', message.data.error);
             }

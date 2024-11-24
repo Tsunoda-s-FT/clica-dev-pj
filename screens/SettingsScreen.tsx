@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  TextInput,
-  Alert,
-  TouchableOpacity,
-  Text,
   StyleSheet,
   SafeAreaView,
   StatusBar,
-  Switch,
+  Alert,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { LoginData } from '../types';
+import LoginSettingsForm from '../components/LoginSettingsForm';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface SettingsScreenProps {
   onSettingsSubmit?: (data: LoginData) => void;
@@ -26,7 +25,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [webviewUrl, setWebviewUrl] = useState<string | null>(null);
   const [autoLoginEnabled, setAutoLoginEnabled] = useState<boolean>(false);
-  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchLoginData = async () => {
@@ -54,12 +52,15 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
 
     try {
       const storedData = await AsyncStorage.getItem('loginData');
-      const newLoginData: LoginData = storedData
-        ? { ...JSON.parse(storedData), autoLoginEnabled: newValue }
-        : { userID, password, autoLoginEnabled: newValue };
-
-      await AsyncStorage.setItem('loginData', JSON.stringify(newLoginData));
-      console.log('Auto-login updated:', newLoginData);
+      if (storedData) {
+        const currentData = JSON.parse(storedData);
+        const newLoginData: LoginData = {
+          ...currentData,
+          autoLoginEnabled: newValue,
+        };
+        await AsyncStorage.setItem('loginData', JSON.stringify(newLoginData));
+        console.log('Auto-login updated:', newLoginData);
+      }
     } catch (error) {
       console.error('Error saving auto-login state:', error);
     }
@@ -67,7 +68,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
 
   const saveLoginDataAndLogin = async () => {
     if (!userID || !password) {
-      Alert.alert('Error', 'Please fill out both fields');
+      Alert.alert('入力エラー', 'IDとパスワードを入力してください');
       return;
     }
 
@@ -81,143 +82,128 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
       await AsyncStorage.setItem('loginData', JSON.stringify(loginData));
       console.log('Login data saved:', loginData);
       
-      Alert.alert('Success', 'Login data saved.', [
-        {
-          text: 'OK',
-          onPress: () => {
-            if (onSettingsSubmit) {
-              onSettingsSubmit(loginData);
-            }
-            setTimeout(() => {
-              navigation.navigate('Login' as never);
-            }, 500);
-          },
-        },
-      ]);
+      if (onSettingsSubmit) {
+        onSettingsSubmit(loginData);
+      }
     } catch (error) {
       console.error('Error saving login data:', error);
-      Alert.alert('Error', 'Failed to save login data');
+      Alert.alert('エラー', '保存に失敗しました');
+    }
+  };
+
+  const handleClear = async () => {
+    try {
+      setUserID('');
+      setPassword('');
+      setAutoLoginEnabled(false);
+      await AsyncStorage.removeItem('loginData');
+      console.log('Login data cleared');
+    } catch (error) {
+      console.error('Error clearing login data:', error);
+      Alert.alert('エラー', 'クリアに失敗しました');
+    }
+  };
+
+  const handleWebViewNavigationStateChange = (newNavState: any) => {
+    const { url } = newNavState;
+    if (url === 'https://clica.jp/app/') {
+      setWebviewUrl(null);  // WebViewを閉じる
     }
   };
 
   if (isLoadingData) {
-    return <LoadingIndicator message="Loading..." />;
+    return <LoadingIndicator message="読み込み中" />;
   }
 
   if (webviewUrl) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
-        <WebView source={{ uri: webviewUrl }} style={{ flex: 1 }} />
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => setWebviewUrl(null)}
-        >
-          <Text style={styles.backButtonText}>戻る</Text>
-        </TouchableOpacity>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.webviewContainer}>
+          <TouchableOpacity 
+            style={styles.closeButton} 
+            onPress={() => setWebviewUrl(null)}
+          >
+            <Icon 
+              name="close" 
+              size={24} 
+              color="#333"
+            />
+          </TouchableOpacity>
+          <WebView 
+            source={{ uri: webviewUrl }} 
+            style={styles.webview}
+            onNavigationStateChange={handleWebViewNavigationStateChange}
+          />
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-      <StatusBar backgroundColor="white" barStyle="dark-content" />
-      <View style={{ flex: 1 }}>
-        <View style={styles.formContainer}>
-          <TextInput
-            placeholder="ログインIDを入力"
-            value={userID}
-            onChangeText={setUserID}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="パスワードを入力"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
-
-          <View style={styles.switchContainer}>
-            <Text>自動ログイン</Text>
-            <Switch
-              value={autoLoginEnabled}
-              onValueChange={handleAutoLoginToggle}
-            />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.saveButton} 
-            onPress={saveLoginDataAndLogin}
-          >
-            <Text style={styles.saveButtonText}>保存</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => setWebviewUrl('https://clica.jp/app/signup/user_entry.aspx')}
-          >
-            <Text style={styles.linkText}>受講者アカウント登録</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => setWebviewUrl('https://clica.jp/app/remind/_sub/remind.aspx')}
-          >
-            <Text style={styles.linkText}>パスワードを忘れた方</Text>
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>設定</Text>
       </View>
+      <LoginSettingsForm
+        userID={userID}
+        password={password}
+        autoLoginEnabled={autoLoginEnabled}
+        onUserIDChange={setUserID}
+        onPasswordChange={setPassword}
+        onAutoLoginToggle={handleAutoLoginToggle}
+        onSave={saveLoginDataAndLogin}
+        onClear={handleClear}
+        onSignupPress={() => setWebviewUrl('https://clica.jp/app/signup/user_entry.aspx')}
+        onForgotPasswordPress={() => setWebviewUrl('https://clica.jp/app/remind/_sub/remind.aspx')}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  formContainer: {
-    padding: 20,
-    flexGrow: 1,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  input: {
-    marginBottom: 10,
-    borderWidth: 1,
-    padding: 10,
-    borderColor: '#ccc',
-    borderRadius: 5,
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+  },
+  webviewContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  webview: {
+    flex: 1,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 1,
+    width: 36,
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 18,
     alignItems: 'center',
-    marginVertical: 10,
-  },
-  saveButton: {
-    backgroundColor: '#000',
-    paddingVertical: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  linkButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  linkText: {
-    color: '#007AFF',
-    fontSize: 16,
-  },
-  backButton: {
-    backgroundColor: '#007AFF',
-    padding: 10,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
 
