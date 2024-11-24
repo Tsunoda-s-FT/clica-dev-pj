@@ -2,7 +2,7 @@
   "expo": {
     "name": "Clica-dev-pj",
     "slug": "Clica-dev-pj",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,16 +13,31 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "jp.co.digital-knowledge.clica",
+      "buildNumber": "1",
+      "appleTeamId": "TB76AL8TCK"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "jp.co.digital_knowledge.clica"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "21efb447-2d97-4624-b18e-9c9958d3ce79"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/21efb447-2d97-4624-b18e-9c9958d3ce79"
     }
   }
 }

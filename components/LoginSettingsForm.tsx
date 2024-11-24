@@ -8,6 +8,9 @@ import {
   Switch,
   Alert,
   Keyboard,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -79,104 +82,120 @@ const LoginSettingsForm: React.FC<LoginSettingsFormProps> = ({
   };
 
   return (
-    <View style={styles.formContainer}>
-      <View style={styles.mainSection}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Clica ログイン設定</Text>
-          <TextInput
-            placeholder="ID"
-            value={userID}
-            onChangeText={onUserIDChange}
-            style={styles.input}
-            placeholderTextColor="#999"
-          />
-          <View style={styles.passwordContainer}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView 
+        style={styles.formContainer}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.mainSection}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Clica ログイン設定</Text>
             <TextInput
-              placeholder="パスワード"
-              value={password}
-              onChangeText={onPasswordChange}
-              secureTextEntry={!showPassword}
-              style={[styles.input, styles.passwordInput]}
+              placeholder="ID"
+              value={userID}
+              onChangeText={onUserIDChange}
+              style={styles.input}
               placeholderTextColor="#999"
             />
-            <TouchableOpacity 
-              style={styles.eyeButton}
-              onPress={() => setShowPassword(!showPassword)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Icon 
-                name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
-                size={20} 
-                color="#999"
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="パスワード"
+                value={password}
+                onChangeText={onPasswordChange}
+                secureTextEntry={!showPassword}
+                style={[styles.input, styles.passwordInput]}
+                placeholderTextColor="#999"
               />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.saveButton} 
-              onPress={handleSave}
-            >
-              <Text style={styles.saveButtonText}>保存</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.clearButton} 
-              onPress={handleClear}
-            >
-              <Text style={styles.clearButtonText}>クリア</Text>
-            </TouchableOpacity>
-          </View>
-
-          {saveSuccess && (
-            <Text style={styles.successMessage}>
-              保存しました
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.autoLoginSection}>
-          <View style={styles.switchContainer}>
-            <View>
-              <Text style={styles.switchLabel}>自動ログイン</Text>
-              {!canEnableAutoLogin && (
-                <Text style={styles.switchDescription}>
-                  IDとパスワードを保存後に設定できます
-                </Text>
-              )}
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Icon 
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
+                  size={20} 
+                  color="#999"
+                />
+              </TouchableOpacity>
             </View>
-            <Switch
-              value={autoLoginEnabled}
-              onValueChange={onAutoLoginToggle}
-              disabled={!canEnableAutoLogin}
-              ios_backgroundColor="#E5E5E5"
-            />
+            
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.saveButton} 
+                onPress={handleSave}
+              >
+                <Text style={styles.saveButtonText}>保存</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.clearButton} 
+                onPress={handleClear}
+              >
+                <Text style={styles.clearButtonText}>クリア</Text>
+              </TouchableOpacity>
+            </View>
+
+            {saveSuccess && (
+              <Text style={styles.successMessage}>
+                保存しました
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.autoLoginSection}>
+            <View style={styles.switchContainer}>
+              <View>
+                <Text style={styles.switchLabel}>自動ログイン</Text>
+                {!canEnableAutoLogin && (
+                  <Text style={styles.switchDescription}>
+                    IDとパスワードを保存後に設定できます
+                  </Text>
+                )}
+              </View>
+              <Switch
+                value={autoLoginEnabled}
+                onValueChange={onAutoLoginToggle}
+                disabled={!canEnableAutoLogin}
+                ios_backgroundColor="#E5E5E5"
+              />
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.linkSection}>
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={onSignupPress}
-        >
-          <Text style={styles.linkText}>新規登録</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={onForgotPasswordPress}
-        >
-          <Text style={styles.linkText}>パスワードを忘れた場合</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        <View style={styles.linkSection}>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={onSignupPress}
+          >
+            <Text style={styles.linkText}>新規登録</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={onForgotPasswordPress}
+          >
+            <Text style={styles.linkText}>パスワードを忘れた場合</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   formContainer: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 24,
+    flexGrow: 1,
   },
   mainSection: {
     flex: 1,
@@ -191,7 +210,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   linkSection: {
-    marginTop: 'auto',
+    marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
