@@ -6,20 +6,33 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { LoginData, NavigationProps, LoginScreenProps } from '../types';
 
+// 最大ログイン試行回数の定義
 const MAX_LOGIN_ATTEMPTS = 3;
+// 初期表示URLの定義
 const INITIAL_URL = 'https://clica.jp/app/';
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+  // ログインデータの状態管理
   const [loginData, setLoginData] = useState<LoginData | null>(null);
+  // ローディング状態の管理
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // WebViewの再レンダーを促すキーの管理
   const [webViewKey, setWebViewKey] = useState<number>(0);
+  // 現在のURLの状態管理
   const [currentUrl, setCurrentUrl] = useState<string>(INITIAL_URL);
+  // ログイン試行回数の管理
   const [loginAttempts, setLoginAttempts] = useState<number>(0);
+  // ログイン状態の管理
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  // ナビゲーションオブジェクトの取得
   const navigation = useNavigation();
+  // 画面のフォーカス状態の取得
   const isFocused = useIsFocused();
+  // WebViewの参照を保持
   const webViewRef = useRef<WebView>(null);
+  // 初回ロードの管理
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+  // ログアウト処理中の状態管理
   const [isProcessingLogout, setIsProcessingLogout] = useState<boolean>(false);
 
   /**
@@ -54,7 +67,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         setWebViewKey(prevKey => prevKey + 1);
       });
     }
-  }, [isFocused, isLoggedIn]);
+  }, [isFocused, isLoggedIn, isProcessingLogout]);
 
   /**
    * ログイン状態に応じてタブバーの表示を制御します。
@@ -63,6 +76,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     if (isLoggedIn) {
       console.log('👤 User logged in, hiding tab bar');
       navigation.setOptions({ tabBarStyle: { display: 'none' } });
+    } else {
+      console.log('👤 User logged out, showing tab bar');
+      navigation.setOptions({ tabBarStyle: { display: 'flex' } });
     }
   }, [isLoggedIn, navigation]);
 
@@ -84,6 +100,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     console.log('🌐 Navigating to:', navState.url);
     
+    // ログアウトURLまたはログイン後の初期URLに移動した場合の処理
     if (navState.url.includes('/logout.aspx') || 
         (isLoggedIn && navState.url === INITIAL_URL)) {
       console.log('👋 Logout detected');
@@ -91,6 +108,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       return;
     }
 
+    // ログイン成功と判断できるURLに移動した場合の処理
     if (navState.url.includes('/home/default.aspx') && !isLoggedIn) {
       console.log('✅ Login successful');
       setIsLoggedIn(true);
@@ -106,6 +124,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       return;
     }
 
+    // ログイン試行中のURLパターンに一致した場合の処理
     if (!isLoggedIn && navState.url.includes('default.aspx?k=')) {
       setLoginAttempts(prevAttempts => {
         const newAttempts = prevAttempts + 1;
@@ -264,8 +283,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       setLoginAttempts(0);
       setCurrentUrl(INITIAL_URL);
 
+      // タブバーの表示を復元
       navigation.setOptions({ tabBarStyle: { display: 'flex' } });
 
+      // ログインデータを取得し、自動ログインを無効化
       const storedData = await AsyncStorage.getItem('loginData');
       if (storedData) {
         const parsedData: LoginData = JSON.parse(storedData);
@@ -276,6 +297,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         console.log('✅ Auto-login disabled in storage');
       }
 
+      // WebViewのリロードとナビゲーションのリセットを同時に実行
       await Promise.all([
         new Promise(resolve => {
           setWebViewKey(prev => {
@@ -314,6 +336,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       }
     }
 
+    // HTTPからHTTPSへのリダイレクト処理
     if (request.url.startsWith('http://clica.jp')) {
       console.log('🔒 Converting HTTP to HTTPS');
       const secureUrl = request.url.replace('http://', 'https://');
@@ -322,6 +345,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       return false;
     }
 
+    // ユーザークリックによるナビゲーションの処理
     if (request.navigationType === 'click' && request.url !== currentUrl) {
       console.log('👆 User click detected, updating URL');
       setCurrentUrl(request.url);
