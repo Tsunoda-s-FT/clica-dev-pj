@@ -20,6 +20,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const isFocused = useIsFocused();
   const webViewRef = useRef<WebView>(null);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+  const [isProcessingLogout, setIsProcessingLogout] = useState<boolean>(false);
 
   /**
    * ログインデータをAsyncStorageから取得します。
@@ -46,14 +47,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
    */
   useEffect(() => {
     console.log('🔄 Screen focus state changed. isFocused:', isFocused);
-    if (isFocused && !isLoggedIn) {
+    if (isFocused && !isLoggedIn && !isProcessingLogout) {
       console.log('📱 Screen is focused, initiating data fetch and WebView reload');
       fetchLoginData().finally(() => {
         setIsLoading(false);
-        setWebViewKey(prevKey => {
-          console.log('🔑 Updating WebView key from', prevKey, 'to', prevKey + 1);
-          return prevKey + 1;
-        });
+        setWebViewKey(prevKey => prevKey + 1);
       });
     }
   }, [isFocused, isLoggedIn]);
@@ -86,6 +84,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     console.log('🌐 Navigating to:', navState.url);
     
+    if (navState.url.includes('/logout.aspx') || 
+        (isLoggedIn && navState.url === INITIAL_URL)) {
+      console.log('👋 Logout detected');
+      handleLogout(loginData);
+      return;
+    }
+
     if (navState.url.includes('/home/default.aspx') && !isLoggedIn) {
       console.log('✅ Login successful');
       setIsLoggedIn(true);
@@ -246,8 +251,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
    * 自動ログインを無効化し、アプリのナビゲーションをリセットします。
    */
   const handleLogout = async (logoutData: LoginData | null | undefined = null) => {
+    if (isProcessingLogout) {
+      console.log('⚠️ Logout already in progress');
+      return;
+    }
+
     console.log('🔄 Processing logout...');
     try {
+      setIsProcessingLogout(true);
+      
+      setIsLoggedIn(false);
+      setLoginAttempts(0);
+      setCurrentUrl(INITIAL_URL);
+
+      navigation.setOptions({ tabBarStyle: { display: 'flex' } });
+
       const storedData = await AsyncStorage.getItem('loginData');
       if (storedData) {
         const parsedData: LoginData = JSON.parse(storedData);
@@ -257,13 +275,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         }));
         console.log('✅ Auto-login disabled in storage');
       }
-      setIsLoggedIn(false);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AuthTabs' as never }],
-      });
+
+      await Promise.all([
+        new Promise(resolve => {
+          setWebViewKey(prev => {
+            resolve(prev + 1);
+            return prev + 1;
+          });
+        }),
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'AuthTabs' as never }],
+        })
+      ]);
+
+      console.log('✅ Logout completed successfully');
     } catch (error) {
       console.error('❌ Logout error:', error);
+    } finally {
+      setIsProcessingLogout(false);
     }
   };
 
