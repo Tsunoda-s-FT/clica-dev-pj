@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { SafeAreaView, Alert } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
+import CookieManager from '@react-native-cookies/cookies';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -67,7 +68,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       console.log('📱 Screen is focused, initiating data fetch and WebView reload');
       fetchLoginData().finally(() => {
         setIsLoading(false);
-        setWebViewKey(prevKey => prevKey + 1);
+        if (!isInitialLoad) {
+          setWebViewKey(prevKey => prevKey + 1);
+        }
       });
     }
   }, [isFocused, isLoggedIn, isProcessingLogout]);
@@ -294,9 +297,26 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     try {
       setIsProcessingLogout(true);
       
+      // WebViewにクッキーをクリアするJavaScriptを注入
+      if (webViewRef.current) {
+        const clearCookiesJS = `
+          document.cookie.split(';').forEach(function(c) {
+            document.cookie = c.trim().split('=')[0] + '=;' + 'expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+          });
+          localStorage.clear();
+          sessionStorage.clear();
+          window.ReactNativeWebView.postMessage('cookiesCleared');
+        `;
+        webViewRef.current.injectJavaScript(clearCookiesJS);
+      }
+
+      // 既存のログアウト処理
       setIsLoggedIn(false);
       setLoginAttempts(0);
       setCurrentUrl(INITIAL_URL);
+
+      // WebViewの設定を1回だけ更新
+      setWebViewKey(prev => prev + 1);
 
       // タブバーの表示を復元
       navigation.setOptions({ tabBarStyle: { display: 'flex' } });
@@ -418,7 +438,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         source={{ 
           uri: currentUrl,
           headers: {
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         }}
         cacheEnabled={false}
@@ -463,6 +485,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         originWhitelist={['https://*', 'http://*', 'about:blank']}
         setSupportMultipleWindows={false}
         style={{ flex: 1 }}
+        incognito={true}
+        sharedCookiesEnabled={false}
+        thirdPartyCookiesEnabled={false}
       />
     </SafeAreaView>
   );
