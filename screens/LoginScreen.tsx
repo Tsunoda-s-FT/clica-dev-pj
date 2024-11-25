@@ -103,11 +103,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     console.log('🌐 Navigating to:', navState.url);
     
-    // ログアウトURLまたはログイン後の初期URLに移動した場合の処理
-    if (navState.url.includes('/logout.aspx') || 
-        (isLoggedIn && navState.url === INITIAL_URL)) {
-      console.log('👋 Logout detected');
+    // ログアウトURLの検出をより確実に
+    if (navState.url.includes('/logout.aspx')) {
+      console.log('👋 Logout URL detected');
       handleLogout(loginData);
+      return;
+    }
+
+    // ログアウト後のリダイレクトを確実に処理
+    if (isProcessingLogout && navState.url === INITIAL_URL) {
+      console.log('🔄 Processing logout redirect');
+      setWebViewKey(prevKey => prevKey + 1);
       return;
     }
 
@@ -335,6 +341,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handleShouldStartLoadWithRequest = (request: any): boolean => {
     console.log('🔍 Load request for URL:', request.url);
     
+    // ログアウト処理の優先的な処理
+    if (request.url.includes('/logout.aspx')) {
+      console.log('🚪 Allowing logout request');
+      return true;
+    }
+
+    // ログアウト後のリダイレクト処理
+    if (isProcessingLogout && request.url === INITIAL_URL) {
+      console.log('↩️ Allowing logout redirect');
+      return true;
+    }
+
+    // 既存の条件チェック
     if (!isLoggedIn && request.url === 'about:blank') {
       console.log('⚡ Redirecting from about:blank to main URL');
       setCurrentUrl(INITIAL_URL);
