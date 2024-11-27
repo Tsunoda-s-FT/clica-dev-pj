@@ -103,11 +103,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     console.log('🌐 Navigating to:', navState.url);
     
-    // ログアウトURLまたはログイン後の初期URLに移動した場合の処理
-    if (navState.url.includes('/logout.aspx') || 
-        (isLoggedIn && navState.url === INITIAL_URL)) {
-      console.log('👋 Logout detected');
-      handleLogout(loginData);
+    // ログアウトURLに遷移した場合の処理
+    if (navState.url.includes('/logout.aspx')) {
+      console.log('👋 Logout page detected');
+      // ログアウト処理が完了するまで待機
+      setTimeout(() => {
+        handleLogout(loginData);
+        setCurrentUrl(INITIAL_URL);
+      }, 500);
       return;
     }
 
@@ -245,7 +248,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               } catch (error) {
                 console.error('❌ Form submission error:', error);
               }
-            }, 1500);
+            }, 500);
             console.log('⏰ Submit timeout set: 1.5s');
           } else {
             let retryCount = 0;
@@ -257,7 +260,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               
               if (retryCount < maxRetries) {
                 console.log('⏰ Retry timeout set: 1.5s');
-                setTimeout(fillForm, 1500);
+                setTimeout(fillForm, 500);
               } else {
                 console.log('❌ Max retries reached, form fill failed');
               }
@@ -399,7 +402,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         source={{ 
           uri: currentUrl,
           headers: {
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         }}
         cacheEnabled={false}
@@ -444,6 +449,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         originWhitelist={['https://*', 'http://*', 'about:blank']}
         setSupportMultipleWindows={false}
         style={{ flex: 1 }}
+        incognito={true}
+        sharedCookiesEnabled={false}
       />
     </SafeAreaView>
   );
