@@ -110,7 +110,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       setTimeout(() => {
         handleLogout(loginData);
         setCurrentUrl(INITIAL_URL);
-      }, 500);
+      }, 300);
       return;
     }
 
@@ -402,12 +402,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         source={{ 
           uri: currentUrl,
           headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
+            'Cache-Control': 'no-cache'
           }
         }}
-        cacheEnabled={false}
+        incognito={false}
+        sharedCookiesEnabled={true}
+        cacheEnabled={true}
+        domStorageEnabled={true}
         pullToRefreshEnabled={true}
         onNavigationStateChange={handleNavigationStateChange}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
@@ -443,14 +444,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
           console.error('❌ WebView error:', syntheticEvent.nativeEvent);
         }}
         javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={true}
-        mixedContentMode="compatibility"
-        originWhitelist={['https://*', 'http://*', 'about:blank']}
-        setSupportMultipleWindows={false}
         style={{ flex: 1 }}
-        incognito={true}
-        sharedCookiesEnabled={false}
       />
     </SafeAreaView>
   );

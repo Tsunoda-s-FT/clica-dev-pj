@@ -25,6 +25,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [webviewUrl, setWebviewUrl] = useState<string | null>(null);
   const [autoLoginEnabled, setAutoLoginEnabled] = useState<boolean>(false);
+  const [isDataSaved, setIsDataSaved] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchLoginData = async () => {
@@ -35,6 +36,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
           setUserID(parsedData.userID);
           setPassword(parsedData.password);
           setAutoLoginEnabled(parsedData.autoLoginEnabled);
+          setIsDataSaved(true);
           console.log('Settings loaded:', parsedData);
         }
       } catch (error) {
@@ -80,6 +82,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
 
     try {
       await AsyncStorage.setItem('loginData', JSON.stringify(loginData));
+      setIsDataSaved(true);
       console.log('Login data saved:', loginData);
       
       if (onSettingsSubmit) {
@@ -96,6 +99,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
       setUserID('');
       setPassword('');
       setAutoLoginEnabled(false);
+      setIsDataSaved(false);
       await AsyncStorage.removeItem('loginData');
       console.log('Login data cleared');
     } catch (error) {
@@ -149,6 +153,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
         userID={userID}
         password={password}
         autoLoginEnabled={autoLoginEnabled}
+        isDataSaved={isDataSaved}
         onUserIDChange={setUserID}
         onPasswordChange={setPassword}
         onAutoLoginToggle={handleAutoLoginToggle}

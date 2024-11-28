@@ -15,6 +15,7 @@ interface LoginSettingsFormProps {
   userID: string;
   password: string;
   autoLoginEnabled: boolean;
+  isDataSaved: boolean;
   onUserIDChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onAutoLoginToggle: (value: boolean) => void;
@@ -28,6 +29,7 @@ const LoginSettingsForm: React.FC<LoginSettingsFormProps> = ({
   userID,
   password,
   autoLoginEnabled,
+  isDataSaved,
   onUserIDChange,
   onPasswordChange,
   onAutoLoginToggle,
@@ -41,11 +43,11 @@ const LoginSettingsForm: React.FC<LoginSettingsFormProps> = ({
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setCanEnableAutoLogin(Boolean(userID && password));
-    if (!userID || !password) {
+    setCanEnableAutoLogin(Boolean(userID && password && isDataSaved));
+    if (!userID || !password || !isDataSaved) {
       onAutoLoginToggle(false);
     }
-  }, [userID, password]);
+  }, [userID, password, isDataSaved]);
 
   const handleSave = () => {
     if (!userID || !password) {
