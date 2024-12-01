@@ -7,6 +7,11 @@ import {
   Alert,
   TouchableOpacity,
   Text,
+  ScrollView,
+  Keyboard,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
@@ -146,22 +151,34 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onSettingsSubmit }) => 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>設定</Text>
-      </View>
-      <LoginSettingsForm
-        userID={userID}
-        password={password}
-        autoLoginEnabled={autoLoginEnabled}
-        isDataSaved={isDataSaved}
-        onUserIDChange={setUserID}
-        onPasswordChange={setPassword}
-        onAutoLoginToggle={handleAutoLoginToggle}
-        onSave={saveLoginDataAndLogin}
-        onClear={handleClear}
-        onSignupPress={() => setWebviewUrl('https://clica.jp/app/signup/user_entry.aspx')}
-        onForgotPasswordPress={() => setWebviewUrl('https://clica.jp/app/remind/_sub/remind.aspx')}
-      />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>設定</Text>
+            </View>
+            <LoginSettingsForm
+              userID={userID}
+              password={password}
+              autoLoginEnabled={autoLoginEnabled}
+              isDataSaved={isDataSaved}
+              onUserIDChange={setUserID}
+              onPasswordChange={setPassword}
+              onAutoLoginToggle={handleAutoLoginToggle}
+              onSave={saveLoginDataAndLogin}
+              onClear={handleClear}
+              onSignupPress={() => setWebviewUrl('https://clica.jp/app/signup/user_entry.aspx')}
+              onForgotPasswordPress={() => setWebviewUrl('https://clica.jp/app/remind/_sub/remind.aspx')}
+            />
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -209,6 +226,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
   },
 });
 

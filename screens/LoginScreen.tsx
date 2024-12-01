@@ -98,20 +98,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   }, [isInitialLoad]);
 
   /**
-   * WebViewのナビゲーション状態が変化した際のハンドラ。
+   * WebViewのナビゲー���ョン状態が変化した際のハンドラ。
    * ログイン成功やログイン試行回数の管理を行います。
    */
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
     console.log('Navigating to:', navState.url);
     
-    // ログアウトURLに遷移した場合の処理
-    if (navState.url.includes('/logout.aspx')) {
-      console.log('Logout page detected');
-      // ログアウト処理が完了するまで待機
-      setTimeout(() => {
-        handleLogout(loginData);
-        setCurrentUrl(INITIAL_URL);
-      }, 300);
+    // ログイン中にINITIAL_URLへ遷移した場合をログアウトとして検知
+    if (isLoggedIn && navState.url === INITIAL_URL) {
+      console.log('Detected navigation to initial URL while logged in - treating as logout');
+      handleLogout(loginData);
       return;
     }
 

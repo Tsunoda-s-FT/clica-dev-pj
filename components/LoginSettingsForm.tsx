@@ -179,6 +179,7 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
     padding: 24,
+    paddingBottom: 100,
   },
   mainSection: {
     flex: 1,
@@ -197,6 +198,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
