@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { SafeAreaView, Alert } from 'react-native';
+import { Alert, StatusBar, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -399,11 +400,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       <WebView
         ref={webViewRef}
         key={webViewKey}
-        source={{ 
+        source={{
           uri: currentUrl,
           headers: {
-            'Cache-Control': 'no-cache'
-          }
+            'Cache-Control': 'no-cache',
+          },
         }}
         incognito={false}
         sharedCookiesEnabled={true}
@@ -412,7 +413,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         pullToRefreshEnabled={true}
         onNavigationStateChange={handleNavigationStateChange}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
-        onMessage={event => {
+        onMessage={(event) => {
           try {
             const message = JSON.parse(event.nativeEvent.data);
             if (message.type === 'console.log') {
