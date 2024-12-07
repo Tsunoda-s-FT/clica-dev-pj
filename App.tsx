@@ -1,91 +1,102 @@
+// App.tsx
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { WebView } from 'react-native-webview';
+import { ActivityIndicator, View, Text } from 'react-native';
 
-import LoginScreen from './screens/LoginScreen';
+import { AuthTabsProps, MainStackProps, LoginData, AuthTabsParamList } from './types';
+import HomeScreen from './screens/HomeScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import LoadingIndicator from './components/LoadingIndicator';
-import { AuthTabsProps, MainStackProps, LoginData, LoginScreenProps, AuthTabsParamList } from './types'; // AuthTabsParamListをインポート
+
+const log = (...args: any[]) => console.log('[App]', ...args);
+
+log('Starting application');
 
 const Tab = createBottomTabNavigator<AuthTabsParamList>();
 const Stack = createStackNavigator();
 
-const AuthTabs: React.FC<AuthTabsProps> = ({ onLogin }) => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName = focused
-          ? route.name === 'Home'
-            ? 'home'
-            : 'settings'
-          : route.name === 'Home'
-          ? 'home-outline'
-          : 'settings-outline';
+const AuthTabs: React.FC<AuthTabsProps> = ({ onLogin }) => {
+  log('AuthTabs Render');
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          const iconName = focused
+            ? (route.name === 'Home' ? 'home' : 'settings')
+            : (route.name === 'Home' ? 'home-outline' : 'settings-outline');
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#87CEFA',
+        tabBarInactiveTintColor: 'gray',
+      })}
+    >
+      <Tab.Screen
+        name="Home"
+        children={(props) => <HomeScreen {...props} onLogin={onLogin} />}
+        options={{ tabBarLabel: 'Home' }}
+      />
+      <Tab.Screen
+        name="Settings"
+        children={() => <SettingsScreen onSettingsSubmit={onLogin} />}
+      />
+    </Tab.Navigator>
+  );
+};
 
-        return <Ionicons name={iconName} size={size} color={color} />;
-      },
-      tabBarActiveTintColor: '#87CEFA',
-      tabBarInactiveTintColor: 'gray',
-    })}
-  >
-    <Tab.Screen
-      name="Home"
-      component={(props: LoginScreenProps) => (
-        <LoginScreen {...props} onLogin={onLogin} />
-      )}
-      options={{ tabBarLabel: 'Home' }}
-    />
-    <Tab.Screen
-      name="Settings"
-      children={() => <SettingsScreen onSettingsSubmit={onLogin} />}
-    />
-  </Tab.Navigator>
-);
-
-const MainStack: React.FC<MainStackProps> = ({ onLogin, isLoggedIn }) => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="AuthTabs">
-      {(props) => <AuthTabs {...props} onLogin={onLogin} />}
-    </Stack.Screen>
-    <Stack.Screen name="Main" component={WebView} />
-  </Stack.Navigator>
-);
+const MainStack: React.FC<MainStackProps> = ({ onLogin }) => {
+  log('MainStack Render');
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="AuthTabs">
+        {(props) => <AuthTabs {...props} onLogin={onLogin} />}
+      </Stack.Screen>
+    </Stack.Navigator>
+  );
+};
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
+    (async () => {
+      log('Checking login status from storage');
       try {
         const loginData = await AsyncStorage.getItem('loginData');
-        setIsLoggedIn(!!loginData);
+        const loggedIn = !!loginData;
+        setIsLoggedIn(loggedIn);
+        log('Login status:', loggedIn);
       } catch (error) {
-        console.error('Error checking login status:', error);
+        console.error('[App] Error checking login status:', error);
       } finally {
         setLoading(false);
       }
-    };
-
-    checkLoginStatus();
+    })();
   }, []);
 
   const handleLogin = async (loginData: LoginData) => {
+    log('handleLogin called with:', loginData);
     try {
       await AsyncStorage.setItem('loginData', JSON.stringify(loginData));
       setIsLoggedIn(true);
+      log('Login data saved, user logged in');
     } catch (error) {
-      console.error('Error handling login:', error);
+      console.error('[App] Error handling login:', error);
     }
   };
 
   if (loading) {
-    return <LoadingIndicator />;
+    log('Showing loading indicator while checking login');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{ marginTop: 10, color: '#333' }}>Loading...</Text>
+      </View>
+    );
   }
 
   return (
